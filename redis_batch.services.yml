@@ -1,0 +1,6 @@
+services:
+  batch.storage.phpredis:
+    class: Drupal\redis_batch\Batch\PhpRedisBatchStorage
+    arguments:
+      $serializer: '@serialization.phpserialize'
+    autowire: true
