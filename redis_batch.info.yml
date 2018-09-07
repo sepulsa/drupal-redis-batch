@@ -1,0 +1,7 @@
+name: Redis Batch
+type: module
+description: Redis batch
+core: 8.x
+package: Performance
+dependencies:
+- redis:redis
