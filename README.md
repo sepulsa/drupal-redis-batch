@@ -1,11 +1,17 @@
 CONTENTS OF THIS FILE
 ---------------------
    
+ * Introduction
  * Requirements
  * Installation
  * Configuration
  * Maintainers
  
+INTRODUCTION
+------------
+
+The Redis Batch module provides backend storage for drupal batch.
+   
 REQUIREMENTS
 ------------
 
