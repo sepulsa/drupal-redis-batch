@@ -19,11 +19,11 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
   use RedisPrefixTrait;
 
   /**
-   * The redis client.
+   * The redis client factory.
    *
-   * @var \Redis
+   * @var \Drupal\redis\ClientFactory
    */
-  protected $client;
+  protected $clientFactory;
 
   /**
    * The CSRF token generator.
@@ -47,6 +47,13 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
   protected $session;
 
   /**
+   * The redis client.
+   *
+   * @var \Redis
+   */
+  private $client;
+
+  /**
    * Constructs a PhpRedisBatchStorage object.
    *
    * @param \Drupal\redis\ClientFactory $client_factory
@@ -64,7 +71,7 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
     SerializationInterface $serializer,
     SessionInterface $session
   ) {
-    $this->client = $client_factory::getClient();
+    $this->clientFactory = $client_factory;
     $this->session = $session;
     $this->csrfToken = $csrf_token;
     $this->serializer = $serializer;
@@ -75,7 +82,7 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
    */
   public function load($id) {
     $this->session->start();
-    $hash = $this->client->hGetAll($this->getPrefix() . ':' . $id);
+    $hash = $this->getClient()->hGetAll($this->getPrefix() . ':' . $id);
     if ($this->csrfToken->validate($hash['token'], $id)) {
       return $this->serializer::decode($hash['batch']);
     }
@@ -90,7 +97,7 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
     $this->session->start();
 
     $key = $this->getPrefix() . ':' . $batch['id'];
-    $pipe = $this->client->multi(\Redis::MULTI);
+    $pipe = $this->getClient()->multi(\Redis::MULTI);
     $pipe->hMSet($key, [
       'token' => $this->csrfToken->get($batch['id']),
       'batch' => $this->serializer::encode($batch),
@@ -104,8 +111,9 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
    */
   public function update(array $batch): array {
     $key = $this->getPrefix() . ':' . $batch['id'];
-    if ($this->client->exists($key)) {
-      $this->client->hSet($key, 'batch', $this->serializer->encode($batch));
+    $client = $this->getClient();
+    if ($client->exists($key)) {
+      $client->hSet($key, 'batch', $this->serializer::encode($batch));
     }
     return $batch;
   }
@@ -114,7 +122,7 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
    * {@inheritdoc}
    */
   public function delete($id): void {
-    $this->client->del($this->getPrefix() . ':' . $id);
+    $this->getClient()->del($this->getPrefix() . ':' . $id);
   }
 
   /**
@@ -131,6 +139,19 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
       $this->prefix = $this->getDefaultPrefix();
     }
     return $this->prefix . ':batch';
+  }
+
+  /**
+   * Gets the redis client.
+   *
+   * @return \Redis
+   *   The redis client.
+   */
+  private function getClient(): \Redis {
+    if (!$this->client) {
+      $this->client = $this->clientFactory::getClient();
+    }
+    return $this->client;
   }
 
 }
