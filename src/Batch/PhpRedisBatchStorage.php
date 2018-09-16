@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
  */
 class PhpRedisBatchStorage implements BatchStorageInterface {
 
-  const TTL = 864000;
+  public const TTL = 864000;
 
   use RedisPrefixTrait;
 
@@ -77,7 +77,7 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
     $this->session->start();
     $hash = $this->client->hGetAll($this->getPrefix() . ':' . $id);
     if ($this->csrfToken->validate($hash['token'], $id)) {
-      return $this->serializer->decode($hash['batch']);
+      return $this->serializer::decode($hash['batch']);
     }
 
     return FALSE;
@@ -86,14 +86,14 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public function create(array $batch) {
+  public function create(array $batch): void {
     $this->session->start();
 
     $key = $this->getPrefix() . ':' . $batch['id'];
     $pipe = $this->client->multi(\Redis::MULTI);
     $pipe->hMSet($key, [
       'token' => $this->csrfToken->get($batch['id']),
-      'batch' => $this->serializer->encode($batch),
+      'batch' => $this->serializer::encode($batch),
     ]);
     $pipe->expire($key, self::TTL);
     $pipe->exec();
@@ -102,7 +102,7 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public function update(array $batch) {
+  public function update(array $batch): array {
     $key = $this->getPrefix() . ':' . $batch['id'];
     if ($this->client->exists($key)) {
       $this->client->hSet($key, 'batch', $this->serializer->encode($batch));
@@ -113,20 +113,20 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
   /**
    * {@inheritdoc}
    */
-  public function delete($id) {
+  public function delete($id): void {
     $this->client->del($this->getPrefix() . ':' . $id);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function cleanup() {
+  public function cleanup(): void {
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function getPrefix() {
+  protected function getPrefix(): string {
     if ($this->prefix === NULL) {
       $this->prefix = $this->getDefaultPrefix();
     }
