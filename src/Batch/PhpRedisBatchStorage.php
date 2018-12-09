@@ -83,7 +83,7 @@ class PhpRedisBatchStorage implements BatchStorageInterface {
   public function load($id) {
     $this->session->start();
     $hash = $this->getClient()->hGetAll($this->getPrefix() . ':' . $id);
-    if ($this->csrfToken->validate($hash['token'], $id)) {
+    if ($hash && $this->csrfToken->validate($hash['token'], $id)) {
       return $this->serializer::decode($hash['batch']);
     }
 
