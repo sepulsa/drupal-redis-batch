@@ -1,5 +1,5 @@
 services:
-  batch.storage.phpredis:
+  phpredis.batch.storage:
     class: Drupal\redis_batch\Batch\PhpRedisBatchStorage
     arguments:
       $serializer: '@serialization.phpserialize'
